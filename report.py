@@ -13,11 +13,11 @@ from geopy.geocoders import MapBox
 from strava import Strava
 
 
-class LocationLog(dict):
+class LocationCache(dict):
     def __init__(self, *args, **kwargs):
         self._geolocator = MapBox(api_key="")
 
-        super(LocationLog, self).__init__(*args, **kwargs)
+        super(LocationCache, self).__init__(*args, **kwargs)
 
     def __getitem__(self, key):
         if key not in self:
@@ -37,7 +37,7 @@ class LocationLog(dict):
         return super().__getitem__(key)
 
 
-locations = LocationLog()
+locations = LocationCache()
 
 
 def seconds_to_minutes(seconds):
