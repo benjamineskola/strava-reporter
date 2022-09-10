@@ -7,10 +7,12 @@ from datetime import datetime
 from math import sqrt
 from pathlib import Path
 
-import yaml
+from dotenv import load_dotenv
 from geopy.geocoders import MapBox
 
 from strava import Strava
+
+load_dotenv()
 
 
 class LocationCache(dict):
@@ -51,10 +53,7 @@ def link(text, target):
 best = {"overall": None, "km": None, "consistency": None}
 best_efforts = {}
 
-config = yaml.safe_load(
-    (Path(os.environ["XDG_CONFIG_HOME"]) / "strava.yml").read_text()
-)
-client = Strava(config["client_id"], config["client_secret"])
+client = Strava(os.environ["STRAVA_CLIENT_ID"], os.environ["STRAVA_CLIENT_SECRET"])
 
 cache_path = Path(os.environ["XDG_CACHE_HOME"]) / "strava.cache"
 activity_cache = {}
