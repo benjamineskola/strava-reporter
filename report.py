@@ -3,7 +3,7 @@
 import os
 import pickle
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import sqrt
 from pathlib import Path
 
@@ -43,7 +43,7 @@ locations = LocationCache()
 
 
 def seconds_to_minutes(seconds):
-    return f"{int(seconds / 60)}:{int(seconds % 60):02d}"
+    return str(timedelta(seconds=int(seconds))).removeprefix("0:")
 
 
 def link(text, target):
