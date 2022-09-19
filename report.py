@@ -17,7 +17,7 @@ load_dotenv()
 
 class LocationCache(dict):
     def __init__(self, *args, **kwargs):
-        self._geolocator = MapBox(api_key="")
+        self._geolocator = MapBox(api_key=os.environ["MAPBOX_API_KEY"])
 
         super(LocationCache, self).__init__(*args, **kwargs)
 
