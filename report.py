@@ -55,7 +55,14 @@ best_efforts = {}
 
 client = Strava(os.environ["STRAVA_CLIENT_ID"], os.environ["STRAVA_CLIENT_SECRET"])
 
-cache_path = Path(os.environ["XDG_CACHE_HOME"]) / "strava.cache"
+activity_type = "Run" if len(sys.argv) == 1 else sys.argv[1].capitalize()
+
+cache_path = Path(os.environ["XDG_CACHE_HOME"]) / (
+    "strava.cache"
+    if activity_type == "Run"
+    else f"strava.{activity_type.lower()}.cache"
+)
+
 activity_cache = {}
 if cache_path.exists():
     activity_cache = pickle.loads(cache_path.read_bytes())
@@ -65,7 +72,7 @@ while activities := client.get(
     "/athlete/activities",
     params={
         # "after": int(datetime(2021, 4, 1).timestamp()),
-        "after": int(datetime(2014, 9, 1).timestamp()),
+        "after": int(datetime(2010, 6, 1).timestamp()),
         # "after": int(datetime(2018, 5, 24).timestamp()),
         # "before": int(datetime(2018, 6, 26).timestamp()),
         "page": page,
@@ -78,7 +85,10 @@ while activities := client.get(
         sys.exit(1)
 
     for activity in activities:
-        if activity["type"] != "Run":
+        if activity["type"] != activity_type:
+            continue
+
+        if activity["id"] in [49385397, 49451690]:
             continue
 
         if activity["id"] in activity_cache:
@@ -101,12 +111,13 @@ while activities := client.get(
 
         location = locations[tuple([round(i, 2) for i in activity["start_latlng"]])]
 
-        for effort in activity["best_efforts"]:
-            if effort["name"] not in best_efforts:
-                best_efforts[effort["name"]] = []
-            effort["start_date"] = activity["start_date"]
-            effort["activity"] = activity
-            best_efforts[effort["name"]].append(effort)
+        if "best_efforts" in activity:
+            for effort in activity["best_efforts"]:
+                if effort["name"] not in best_efforts:
+                    best_efforts[effort["name"]] = []
+                effort["start_date"] = activity["start_date"]
+                effort["activity"] = activity
+                best_efforts[effort["name"]].append(effort)
 
         print(
             f"""{link(activity['start_date'].strftime("%a, %b %d, %Y"), 'https://www.strava.com/activities/'+str(activity['id']))} {activity["distance"]/1000:.2f}km in {seconds_to_minutes(activity["elapsed_time"])} ({average_pace}/km, 5k in {seconds_to_minutes(5000/activity["average_speed"])}){" — " + location if location else ""}{" — " + activity["description"] if activity["description"] else ""}"""
@@ -128,7 +139,13 @@ while activities := client.get(
                 split
                 for split in activity["splits_metric"]
                 if split["distance"] >= 900
-                and (split["distance"] / split["elapsed_time"]) <= 4
+                and (
+                    (
+                        activity_type == "Ride"
+                        and (split["distance"] / split["elapsed_time"]) <= 20
+                    )
+                    or (split["distance"] / split["elapsed_time"]) <= 4
+                )
             ]
             for split in splits:
                 split_average_speed = split["distance"] / split["elapsed_time"]
