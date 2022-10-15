@@ -151,7 +151,10 @@ Pace: {average_pace}/km
                 efforts.sort(
                     key=lambda d: (d["elapsed_time"], -d["start_date"].timestamp())
                 )
-                index = [effort["activity"] for effort in efforts].index(activity)
+                try:
+                    index = [effort["activity"] for effort in efforts].index(activity)
+                except ValueError:
+                    continue
                 if index < 5:
                     body += (
                         "\n- "
