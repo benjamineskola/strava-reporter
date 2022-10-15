@@ -4,7 +4,7 @@ import os
 import pickle
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -167,7 +167,12 @@ Link to activity: https://www.strava.com/activities/{activity['id']}
                 "--journal",
                 "Fitness",
                 "--isoDate",
-                activity["start_date"].strftime("%Y-%m-%dT%H:%M:%S"),
+                activity["start_date"]
+                .astimezone(timezone.utc)
+                .replace(tzinfo=None)
+                .isoformat(),
+                "--time-zone",
+                f"GMT{activity['start_date'].strftime('%z')}",
                 "--tags",
                 activity["type"],
                 "strava",
