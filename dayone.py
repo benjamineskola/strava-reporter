@@ -141,8 +141,11 @@ Distance: {activity["distance"]/1000:.2f}km
 Elapsed time: {seconds_to_minutes(activity["elapsed_time"])}
 Elapsed time (seconds): {activity["elapsed_time"]}
 Pace: {average_pace}/km
-Link to activity: https://www.strava.com/activities/{activity['id']}
-            """
+"""
+            if activity["type"] == "Ride":
+                body += f"Speed: {activity['average_speed'] / 1000 * 3600:.2f} km/h\n"
+
+            body += f"Link to activity: https://www.strava.com/activities/{activity['id']}\n"
 
             for effort_type, efforts in best_efforts.items():
                 efforts.sort(
