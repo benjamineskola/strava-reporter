@@ -165,7 +165,7 @@ Pace: {average_pace}/km
                             3: "4th best",
                             4: "5th best",
                         }.get(index)
-                        + f" {effort_type} time"
+                        + f" {effort_type} time ({seconds_to_minutes(efforts[index]['elapsed_time'])})"
                     )
 
             cmd = [
