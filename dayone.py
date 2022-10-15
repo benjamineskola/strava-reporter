@@ -8,38 +8,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from geopy.geocoders import MapBox
 
 from strava import Strava
 
 load_dotenv()
-
-
-class LocationCache(dict):
-    def __init__(self, *args, **kwargs):
-        self._geolocator = MapBox(api_key=os.environ["MAPBOX_API_KEY"])
-
-        super(LocationCache, self).__init__(*args, **kwargs)
-
-    def __getitem__(self, key):
-        if key not in self:
-            location = self._geolocator.reverse(key)
-            if not location:
-                return
-            self[key] = ", ".join(
-                [
-                    l["text"]
-                    for l in location.raw["context"]
-                    if l["id"].startswith("place.")
-                    or l["id"].startswith("neighbourhood.")
-                    or l["id"].startswith("locality.")
-                ]
-            )
-
-        return super().__getitem__(key)
-
-
-locations = LocationCache()
 
 
 def seconds_to_minutes(seconds):
@@ -111,28 +83,6 @@ if __name__ == "__main__":
             average_speed = activity["distance"] / activity["elapsed_time"]
             average_pace = seconds_to_minutes(1 / (average_speed / 1000))
 
-            if activity["distance"] > 900:
-                if (
-                    not best["overall"]
-                    or best["overall"]["average_speed"] < average_speed
-                ):
-                    best["overall"] = {
-                        "average_speed": average_speed,
-                        "pace": average_pace,
-                        "start_date": activity["start_date"],
-                        "activity": activity,
-                    }
-
-            location = locations[tuple([round(i, 2) for i in activity["start_latlng"]])]
-
-            if "best_efforts" in activity:
-                for effort in activity["best_efforts"]:
-                    if effort["name"] not in best_efforts:
-                        best_efforts[effort["name"]] = []
-                    effort["start_date"] = activity["start_date"]
-                    effort["activity"] = activity
-                    best_efforts[effort["name"]].append(effort)
-
             newline = "\n"
 
             body = f"""# {activity["name"]}
@@ -147,26 +97,36 @@ Pace: {average_pace}/km
 
             body += f"Link to activity: https://www.strava.com/activities/{activity['id']}\n"
 
-            for effort_type, efforts in best_efforts.items():
-                efforts.sort(
-                    key=lambda d: (d["elapsed_time"], -d["start_date"].timestamp())
-                )
-                try:
-                    index = [effort["activity"] for effort in efforts].index(activity)
-                except ValueError:
-                    continue
-                if index < 5:
-                    body += (
-                        "\n- "
-                        + {
-                            0: "Best",
-                            1: "2nd best",
-                            2: "3rd best",
-                            3: "4th best",
-                            4: "5th best",
-                        }.get(index)
-                        + f" {effort_type} time ({seconds_to_minutes(efforts[index]['elapsed_time'])})"
+            if "best_efforts" in activity:
+                for effort in activity["best_efforts"]:
+                    if effort["name"] not in best_efforts:
+                        best_efforts[effort["name"]] = []
+                    effort["start_date"] = activity["start_date"]
+                    effort["activity"] = activity
+                    best_efforts[effort["name"]].append(effort)
+
+                for effort_type, efforts in best_efforts.items():
+                    efforts.sort(
+                        key=lambda d: (d["elapsed_time"], -d["start_date"].timestamp())
                     )
+                    try:
+                        index = [effort["activity"] for effort in efforts].index(
+                            activity
+                        )
+                    except ValueError:
+                        continue
+                    if index < 5:
+                        body += (
+                            "\n- "
+                            + {
+                                0: "Best",
+                                1: "2nd best",
+                                2: "3rd best",
+                                3: "4th best",
+                                4: "5th best",
+                            }.get(index)
+                            + f" {effort_type} time ({seconds_to_minutes(efforts[index]['elapsed_time'])})"
+                        )
 
             cmd = [
                 "dayone2",
@@ -185,7 +145,6 @@ Pace: {average_pace}/km
             ]
             if activity["start_latlng"] and len(activity["start_latlng"]) == 2:
                 cmd += ["--coordinate"] + [str(i) for i in activity["start_latlng"]]
-            # print(cmd)
             cmd += ["--", "new", body]
             subprocess.run(cmd)
             dayone_cache.append(activity["id"])
