@@ -2,6 +2,7 @@
 
 import os
 import pickle
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -12,6 +13,7 @@ from dotenv import load_dotenv
 from strava import Strava
 
 load_dotenv()
+downloaddir = Path(os.environ["HOME"]) / "Downloads"
 
 
 def seconds_to_minutes(seconds):
@@ -51,10 +53,7 @@ if __name__ == "__main__":
     while activities := client.get(
         "/athlete/activities",
         params={
-            # "after": int(datetime(2021, 4, 1).timestamp()),
-            "after": int(datetime(2022, 10, 1).timestamp()),
-            # "after": int(datetime(2018, 5, 24).timestamp()),
-            # "before": int(datetime(2018, 6, 26).timestamp()),
+            "after": int(datetime(2014, 9, 1).timestamp()),
             "page": page,
         },
     ):
@@ -85,8 +84,23 @@ if __name__ == "__main__":
 
             newline = "\n"
 
-            body = f"""# {activity["name"]}
-{activity["description"].strip() + newline if activity["description"] else ""}
+            body = f"""# {activity["name"]}\n"""
+
+            attachment = None
+            if (
+                "map" in activity
+                and "polyline" in activity["map"]
+                and activity["map"]["polyline"]
+            ):
+                attachment = f"https://maps.googleapis.com/maps/api/staticmap?size=600x300&maptype=roadmap&path=enc:{activity['map']['polyline']}&key={os.environ['GOOGLE_API_KEY']}"
+                localname = (
+                    downloaddir
+                    / f"{re.sub('[/:]', '_', str(activity['start_date']))}_map.jpg"
+                )
+                body += "[{attachment}]\n"
+                subprocess.run(["curl", "-gkLsS", "-o", str(localname), attachment])
+
+            body += f"""{activity["description"].strip() + newline if activity["description"] else ""}
 Distance: {activity["distance"]/1000:.2f}km
 Elapsed time: {seconds_to_minutes(activity["elapsed_time"])}
 Elapsed time (seconds): {activity["elapsed_time"]}
@@ -143,11 +157,17 @@ Pace: {average_pace}/km
                 activity["type"],
                 "strava",
             ]
+
+            if attachment:
+                cmd += ["--attachments", localname]
+
             if activity["start_latlng"] and len(activity["start_latlng"]) == 2:
                 cmd += ["--coordinate"] + [str(i) for i in activity["start_latlng"]]
             cmd += ["--", "new", body]
             subprocess.run(cmd)
+            if attachment:
+                os.unlink(localname)
             dayone_cache.append(activity["id"])
+            dayone_cache_path.write_bytes(pickle.dumps(dayone_cache))
 
     cache_path.write_bytes(pickle.dumps(activity_cache))
-    dayone_cache_path.write_bytes(pickle.dumps(dayone_cache))
