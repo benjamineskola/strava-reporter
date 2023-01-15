@@ -88,7 +88,7 @@ while activities := client.get(
         if activity["type"] != activity_type:
             continue
 
-        if activity["id"] in [49385397, 49451690]:
+        if activity["id"] in [49385397, 49451690, 294364499]:
             continue
 
         if activity["id"] in activity_cache:
