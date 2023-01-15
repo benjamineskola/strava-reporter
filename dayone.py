@@ -79,8 +79,20 @@ if __name__ == "__main__":
                 activity = client.get(f"/activities/{activity['id']}")
                 activity_cache[activity["id"]] = activity
 
+            if activity['distance'] == 0:
+                desc = activity['description'].strip()
+                if desc.endswith('km'):
+                    activity['distance'] = float(desc.removesuffix('km')) * 1000
+                    del activity['description']
+                    activity['description'] = 'Indoor ride'
+                    activity_cache[activity["id"]] = activity
+
+
             average_speed = activity["distance"] / activity["elapsed_time"]
             average_pace = seconds_to_minutes(1 / (average_speed / 1000))
+
+            if activity['average_speed'] == 0:
+                activity['average_speed'] = average_speed
 
             newline = "\n"
 
