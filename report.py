@@ -129,6 +129,11 @@ while activities := client.get(
                 ", ".join(
                     [
                         seconds_to_minutes(1 / (split["average_speed"] / 1000))
+                        + (
+                            f" ({split['average_speed'] / 1000 * 3600:.2f}km/h)"
+                            if activity_type == "Ride"
+                            else ""
+                        )
                         for split in activity["splits_metric"]
                         if split["distance"] >= 900
                     ]
@@ -148,7 +153,11 @@ while activities := client.get(
                 )
             ]
             for split in splits:
-                split_average_speed = split["distance"] / split["elapsed_time"]
+                split_average_speed = split["distance"] / (
+                    split["moving_time"]
+                    if activity_type == "Ride"
+                    else split["elapsed_time"]
+                )
                 if not best["km"] or best["km"]["average_speed"] < split_average_speed:
                     best["km"] = {
                         "activity": activity,
