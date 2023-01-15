@@ -92,7 +92,13 @@ if __name__ == "__main__":
                 and "polyline" in activity["map"]
                 and activity["map"]["polyline"]
             ):
-                attachment = f"https://maps.googleapis.com/maps/api/staticmap?size=600x300&maptype=roadmap&path=enc:{activity['map']['polyline']}&key={os.environ['GOOGLE_API_KEY']}"
+                attachment = f"https://maps.googleapis.com/maps/api/staticmap?size=600x300&maptype=da&scale=2&path=color:0xff481eff|weight:2|enc:{activity['map']['polyline']}&key={os.environ['GOOGLE_API_KEY']}&style=feature:road.highway|element:geometry|color:0xFFFFFF&style=feature:transit.station.airport|element:labels.icon|visibility:off&style=feature:poi|element:labels.icon|visibility:off&style=feature:road.highway|element:geometry.stroke|color:0xDDDDDD"
+
+                if activity["type"] != "Ride":
+                    attachment += (
+                        "&style=feature:road|element:labels.icon|visibility:off"
+                    )
+
                 localname = (
                     downloaddir
                     / f"{re.sub('[/:]', '_', str(activity['start_date']))}_map.jpg"
